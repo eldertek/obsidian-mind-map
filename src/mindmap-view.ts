@@ -76,7 +76,11 @@ export default class MindmapView extends ItemView {
     }
 
     async onClose() {
-        this.listeners.forEach(listener => this.workspace.offref(listener));
+        if (this.listeners) {
+            this.listeners.forEach(listener => this.workspace.offref(listener));
+            this.listeners = [];
+        }
+        removeExistingSVG();
     }
 
     registerActiveLeafUpdate() {
@@ -91,7 +95,7 @@ export default class MindmapView extends ItemView {
                 this.update();
             }
         } catch (error) {
-            console.error(error)
+            console.error(error);
         }
     }
 
@@ -113,13 +117,16 @@ export default class MindmapView extends ItemView {
 
     unPin() {
         this.isLeafPinned = false;
-        this.pinAction.parentNode.removeChild(this.pinAction);
+        if (this.pinAction && this.pinAction.parentNode) {
+            this.pinAction.parentNode.removeChild(this.pinAction);
+        }
     }
 
     async update(){
         if(this.filePath) {
             await this.readMarkDown();
-            if(this.currentMd.length === 0 || this.getLeafTarget().view.getViewType() != MD_VIEW_TYPE){
+            const leafTarget = this.getLeafTarget();
+            if(!this.currentMd || this.currentMd.length === 0 || !leafTarget || !leafTarget.view || leafTarget.view.getViewType() != MD_VIEW_TYPE){
                 this.displayEmpty(true);
                 removeExistingSVG();
             } else {
@@ -134,7 +141,8 @@ export default class MindmapView extends ItemView {
     }
 
     async checkActiveLeaf() {
-        if(this.app.workspace.activeLeaf.view.getViewType() === MM_VIEW_TYPE){
+        const activeLeaf = this.app.workspace?.activeLeaf;
+        if(!activeLeaf || !activeLeaf.view || activeLeaf.view.getViewType() === MM_VIEW_TYPE){
             return false;
         }
         const pathHasChanged = this.readFilePath();
@@ -144,28 +152,36 @@ export default class MindmapView extends ItemView {
     }
 
     readFilePath() {
-        const fileInfo = (this.getLeafTarget().view as any).file;
+        const leafTarget = this.getLeafTarget();
+        if (!leafTarget || !leafTarget.view) return false;
+        const fileInfo = (leafTarget.view as any)?.file;
+        if (!fileInfo || !fileInfo.path) return false;
         const pathHasChanged = this.filePath != fileInfo.path;
         this.filePath = fileInfo.path;
-        this.fileName = fileInfo.basename;
+        this.fileName = fileInfo.basename ?? "";
         return pathHasChanged;
     }
     
     getLeafTarget() {
         if(!this.isLeafPinned){
-            this.linkedLeaf = this.app.workspace.activeLeaf;
+            this.linkedLeaf = this.app.workspace?.activeLeaf;
         }
-        return this.linkedLeaf != undefined ? this.linkedLeaf : this.app.workspace.activeLeaf;
+        return this.linkedLeaf != undefined ? this.linkedLeaf : this.app.workspace?.activeLeaf;
     }
 
     async readMarkDown() {
-        let md = await this.app.vault.adapter.read(this.filePath);
-        if(md.startsWith('---')) {
-            md = md.replace(FRONT_MATTER_REGEX, '');
+        if (!this.filePath) return false;
+        try {
+            let md = await this.app.vault.adapter.read(this.filePath);
+            if(md && md.startsWith('---')) {
+                md = md.replace(FRONT_MATTER_REGEX, '');
+            }
+            const markDownHasChanged = this.currentMd != md;
+            this.currentMd = md ?? '';
+            return markDownHasChanged;
+        } catch (e) {
+            return false;
         }
-        const markDownHasChanged = this.currentMd != md;
-        this.currentMd = md;
-        return markDownHasChanged;
     }
     
     async transformMarkdown() {

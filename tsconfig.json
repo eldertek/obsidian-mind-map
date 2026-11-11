@@ -4,7 +4,7 @@
     "inlineSourceMap": true,
     "inlineSources": true,
     "module": "ESNext",
-    "target": "es5",
+    "target": "ES2020",
     "allowJs": true,
     "noImplicitAny": true,
     "allowSyntheticDefaultImports": true,
@@ -12,9 +12,7 @@
     "importHelpers": true,
     "lib": [
       "dom",
-      "es5",
-      "scripthost",
-      "es2015"
+      "es2020"
     ]
   },
   "include": [

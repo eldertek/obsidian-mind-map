@@ -55,7 +55,14 @@ import { MindMapSettingsTab } from './settings-tab';
       if (this.app.workspace.getLeavesOfType(MM_VIEW_TYPE).length > 0) {
         return;
       }
+      const activeLeaf = this.app.workspace?.activeLeaf;
+      if (!activeLeaf) {
+        return;
+      }
       const preview = this.app.workspace.splitActiveLeaf(this.settings.splitDirection);
+      if (!preview) {
+        return;
+      }
       const mmPreview = new MindmapView(this.settings, preview, fileInfo);
       preview.open(mmPreview);
     }
@@ -65,11 +72,11 @@ import { MindMapSettingsTab } from './settings-tab';
     }
 
     activeLeafPath(workspace: Workspace) {
-      return workspace.activeLeaf?.view.getState().file;
+      return (workspace?.getActiveViewOfType(Plugin as any) as any)?.file?.path || workspace?.activeLeaf?.view?.getState()?.file || "";
     }
 
     activeLeafName(workspace: Workspace) {
-      return workspace.activeLeaf?.getDisplayText();
+      return workspace?.activeLeaf?.getDisplayText() || "";
     }
 
 
